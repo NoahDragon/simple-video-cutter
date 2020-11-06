@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Youtube Video Cut Point</title>
+    <meta name="description" content="The HTML5 Herald">
+    <meta name="author" content="Redwood Acedamy"><!-- Latest compiled and minified CSS -->
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+    <!-- Bootstrap core CSS -->
+    <link href="mdb-4.19.1/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Design Bootstrap -->
+    <link href="mdb-4.19.1/css/mdb.min.css" rel="stylesheet">
+    <!-- Your custom styles (optional) -->
+    <link href="mdb-4.19.1/css/style.css" rel="stylesheet">
+    <!-- MDBootstrap Datatables  -->
+    <link href="mdb-4.19.1/css/addons/datatables2.min.css" rel="stylesheet">
+    <script>
+        const queryString = window.location.search;
+    window.onload = function() {
+        // Unfocus the IFrame player
+        document.getElementById("player").blur();
+    };
+    </script>
+    <style>
+        body {
+        text-align: center;
+        padding: 50px;
+        background-image: url('https://github.com/redwoodedu/redwoodedu.github.io/raw/main/logo.jpeg');
+    }
+
+    a {
+        color: #dc8100;
+        text-decoration: none;
+    }
+
+    a:hover {
+        color: #333;
+        text-decoration: none;
+    }
+
+	.center {display: block; margin-left: auto; margin-right: auto; width: 50%; }
+	div.center {
+		width: 800px;
+	}
+
+	table.dataTable thead .sorting:after,
+table.dataTable thead .sorting:before,
+table.dataTable thead .sorting_asc:after,
+table.dataTable thead .sorting_asc:before,
+table.dataTable thead .sorting_asc_disabled:after,
+table.dataTable thead .sorting_asc_disabled:before,
+table.dataTable thead .sorting_desc:after,
+table.dataTable thead .sorting_desc:before,
+table.dataTable thead .sorting_desc_disabled:after,
+table.dataTable thead .sorting_desc_disabled:before {
+bottom: .5em;
+}
+.pt-3-half {
+padding-top: 1.4rem;
+}
+    </style>
+</head>
+
+<body>
+    <!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
+    <div id="player"></div>
+    <div class="card center" aria-label="播放速度">
+        <div class="card-header">
+            <h6 class="card-title">播放速度</h6>
+        </div>
+        <div class="card-body">
+            <div class="btn-group" role="group" aria-label="Playback Speed">
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.25)">0.25</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.5)">0.5</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.75)">0.75</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1)">正常</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.25)">1.25</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.75)">1.5</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(2)">2</button>
+            </div>
+        </div>
+    </div>
+    <div class="card center" aria-label="下载时间戳">
+        <div class="card-header">
+            <h6 class="card-title">时间戳</h6>
+        </div>
+        <div class="card-body">
+        	<button type="button" class="btn btn-default" onclick="resetTable()">重置 <span class="fas fa-redo" aria-hidden="true" /></button>
+            <button type="button" class="btn btn-default" onclick="downloadTxt()">txt <span class="fas fa-download" aria-hidden="true" /></button>
+            <!--<button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.5)">json <span class="fas fa-download" aria-hidden="true" /></button>-->
+            <div id="timestamps">
+                <!-- Editable table -->
+                <div id="table" class="table-editable">
+                    <table class="table table-bordered table-responsive-md table-striped text-center " id="dtVerticalScroll" cellspacing="0" width="100%">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Start Time</th>
+                                <th class="text-center">End Time</th>
+                                <th class="text-center">Replay</th>
+                                <th class="text-center">Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th class="text-center">Start Time</th>
+                                <th class="text-center">End Time</th>
+                                <th class="text-center">Replay</th>
+                                <th class="text-center">Remove</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <!-- Editable table -->
+            </div>
+        </div>
+    </div>
+    <script>
+    const urlParams = new URLSearchParams(queryString);
+    const videoId = urlParams.has('videoId') && urlParams.get('videoId');
+    console.log(videoId);
+    // 2. This code loads the IFrame Player API code asynchronously.
+    var tag = document.createElement('script');
+
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // 3. This function creates an <iframe> (and YouTube player)
+    //    after the API code downloads.
+    var player;
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            height: '390',
+            width: '640',
+            videoId: videoId,
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            },
+        });
+    }
+
+    // 4. The API will call this function when the video player is ready.
+    function onPlayerReady(event) {
+        event.target.playVideo();
+    }
+
+    // 5. The API calls this function when the player's state changes.
+    //    The function indicates that when playing a video (state=1),
+    //    the player should play for six seconds and then stop.
+    var done = false;
+
+    // https://gist.github.com/vankasteelj/74ab7793133f4b257ea3
+    function sec2time(timeInSeconds) {
+        var pad = function(num, size) { return ('000' + num).slice(size * -1); },
+            time = parseFloat(timeInSeconds).toFixed(3),
+            hours = Math.floor(time / 60 / 60),
+            minutes = Math.floor(time / 60) % 60,
+            seconds = Math.floor(time - minutes * 60),
+            milliseconds = time.slice(-3);
+
+        return pad(hours, 2) + ':' + pad(minutes, 2) + ':' + pad(seconds, 2) + '.' + pad(milliseconds, 3);
+    }
+
+    // time with format HH:MM:SS.mmm
+    function time2sec(time) {
+        var splits = time.split(':');
+        var seconds = (+splits[0]) * 60 * 60 + (+splits[1]) * 60 + (+splits[2]);
+        return seconds;
+    }
+
+    // https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
+    function download(filename, text) {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    function downloadTxt() {
+    	var ts = timeStamps();
+    	var str = [];
+
+    	for (var i = 0; i < ts['start'].length; i++) {
+    		var txt = "";
+    		txt = time2sec(ts['start'][i]) + "," + time2sec(ts['end'][i]);
+    		str.push(txt);
+    	}
+    	download("timestamps.txt", str.join('\n'));
+    }
+
+    function resetTable() {
+    	if (isEmptyTable()) {
+    		return;
+    	}
+
+    	if (confirm("删除表中所有时间戳？")) {
+    		cleanUpTableRows();
+		}
+    }
+
+    function onPlayerStateChange(event) {
+        /*
+        if (event.data == YT.PlayerState.PLAYING && !done) {
+            setTimeout(stopVideo, 6000);
+            done = true;
+        }
+        */
+    }
+
+    function stopVideo() {
+        player.stopVideo();
+    }
+
+    function pauseVideo() {
+        player.pauseVideo();
+    }
+
+    function playVideo() {
+        player.playVideo();
+    }
+
+    function toggleVideo() {
+        var state = player.getPlayerState();
+        if (state == 1) // Video playing
+            pauseVideo();
+        else
+            playVideo();
+    }
+
+    function reloadVideo(start, end) {
+        player.loadVideoById({
+            'videoId': videoId,
+            'startSeconds': start,
+            'endSeconds': end,
+        });
+    }
+
+    function setPlaybackSpeed(speed) {
+        player.setPlaybackRate(speed);
+    }
+
+    document.addEventListener('keyup', function(event) {
+        if (event.keyCode == 73) { // i
+            addRow(sec2time(player.getCurrentTime()));
+            console.log(sec2time(player.getCurrentTime()));
+        }
+
+        if (event.keyCode == 79) { // o
+            updateEndtime(sec2time(player.getCurrentTime()));
+            console.log(sec2time(player.getCurrentTime()));
+        }
+
+
+        if (event.keyCode == 32 && event.target == document.body) {
+            event.preventDefault();
+        }
+
+        if (event.keyCode == 32) { // space
+            toggleVideo();
+        }
+
+        if (event.keyCode == 76) { // l
+            reloadVideo(5, 60);
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if ((e.keycode || e.which) == 32) {
+            e.preventDefault();
+        }
+    });
+    </script>
+    <!-- SCRIPTS -->
+    <!-- JQuery -->
+    <script type="text/javascript" src="mdb-4.19.1/js/jquery.min.js"></script>
+    <!-- Bootstrap tooltips -->
+    <script type="text/javascript" src="mdb-4.19.1/js/popper.min.js"></script>
+    <!-- Bootstrap core JavaScript -->
+    <script type="text/javascript" src="mdb-4.19.1/js/bootstrap.min.js"></script>
+    <!-- MDB core JavaScript -->
+    <script type="text/javascript" src="mdb-4.19.1/js/mdb.min.js"></script>
+    <!-- MDBootstrap Datatables  -->
+    <script type="text/javascript" src="mdb-4.19.1/js/addons/datatables2.min.js"></script>
+    <script>
+    const $tableID = $('#table');
+    const $BTN = $('#export-btn');
+    const $EXPORT = $('#export');
+
+    $(document).ready(function() {
+        $('#dtVerticalScroll').DataTable({
+            "scrollY": "500px",
+            "scrollCollapse": true,
+            "searching": false, // false to disable search (or any other option)
+            "paging": false, // false to disable pagination (or any other option)
+        });
+        $('.dataTables_length').addClass('bs-select');
+    });
+
+    const newTr = `
+    <tr class="record">
+	    <td class="pt-3-half" contenteditable="true">START</td>
+	    <td class="pt-3-half" contenteditable="true">END</td>
+	    <td class="pt-3-half">
+	        <span class="table-replay"><button type="button" class="btn btn-info btn-rounded btn-sm my-0"><span class="fas fa-play" aria-hidden="true" /></button></span>
+	    </td>
+	    <td>
+	        <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0"><span class="fas fa-trash-alt" aria-hidden="true" /></button></span>
+	    </td>
+	</tr>`;
+
+    const emptyTr = `
+	<tr class="odd">
+		<td valign="top" colspan="4" class="dataTables_empty">
+			No data available in table
+		</td>
+	</tr>
+	`
+
+    function addRow(start) {
+        if (isEmptyTable()) {
+            $tableID.find('.odd').detach();
+        }
+
+        var end = $tableID.find('.record').last().find('td:nth-child(2)').text();
+
+        if (end !== 'END' && start > end) {
+            $tableID.find('tbody').append(newTr);
+        }
+
+        $tableID.find('.record').last().find('td:nth-child(1)').text(start);
+    }
+
+    function updateEndtime(end) {
+        if (isEmptyTable()) {
+            return;
+        }
+        $tableID.find('.record').last().find('td:nth-child(2)').text(end);
+    }
+
+    function timeStamps() {
+    	if (isEmptyTable()) {
+            return;
+        }
+
+        var ts = {
+        	'start': [],
+        	'end': []}
+        $tableID.find('.record').each((index, obj) => {
+        	var start = $(obj).find('td:nth-child(1)').text();
+        	var end = $(obj).find('td:nth-child(2)').text();
+        	if (end !== 'END') {
+        		ts['start'].push(start);
+        		ts['end'].push(end);
+        	}
+        });
+
+        return ts;
+    }
+
+    function cleanUpTableRows() {
+    	$tableID.find('tbody').empty();
+    	$tableID.find('tbody').append(emptyTr);
+    }
+
+    function isEmptyTable() {
+    	return $tableID.find('.odd').length !== 0;
+    }
+
+    $('.table-add').on('click', 'i', () => {
+        const $clone = $tableID.find('tbody tr').last().clone(true).removeClass('hide table-line');
+
+        if ($tableID.find('tbody tr').length === 0) {
+            $('tbody').append(newTr);
+        }
+
+        $tableID.find('table').append($clone);
+    });
+
+    $tableID.on('click', '.table-replay', function() {
+        var start = $(this).parents('tr').find('td:nth-child(1)').text();
+        var end = $(this).parents('tr').find('td:nth-child(2)').text();
+
+        reloadVideo(time2sec(start), time2sec(end));
+    });
+
+    $tableID.on('click', '.table-remove', function() {
+        $(this).parents('tr').detach();
+        if ($tableID.find('tbody tr').length === 0) {
+            $tableID.find('tbody').append(emptyTr);
+        }
+    });
+
+    $tableID.on('click', '.table-up', function() {
+        const $row = $(this).parents('tr');
+
+        if ($row.index() === 0) {
+            return;
+        }
+
+        $row.prev().before($row.get(0));
+    });
+
+    $tableID.on('click', '.table-down', function() {
+        const $row = $(this).parents('tr');
+        $row.next().after($row.get(0));
+    });
+
+    // A few jQuery helpers for exporting only
+    jQuery.fn.pop = [].pop;
+    jQuery.fn.shift = [].shift;
+
+    $BTN.on('click', () => {
+        const $rows = $tableID.find('tr:not(:hidden)');
+        const headers = [];
+        const data = [];
+
+        // Get the headers (add special header logic here)
+        $($rows.shift()).find('th:not(:empty)').each(function() {
+            headers.push($(this).text().toLowerCase());
+        });
+
+        // Turn all existing rows into a loopable array
+        $rows.each(function() {
+            const $td = $(this).find('td');
+            const h = {};
+
+            // Use the headers from earlier to name our hash keys
+            headers.forEach((header, i) => {
+
+                h[header] = $td.eq(i).text();
+            });
+
+            data.push(h);
+        });
+
+        // Output the result
+        $EXPORT.text(JSON.stringify(data));
+    });
+    </script>
+</body>
+
+</html>
