@@ -26,44 +26,50 @@
     <style>
         body {
         text-align: center;
-        padding: 50px;
         background-image: url('https://github.com/redwoodedu/redwoodedu.github.io/raw/main/logo.jpeg');
-    }
+        }
 
-    a {
-        color: #dc8100;
-        text-decoration: none;
-    }
+        a {
+            color: #dc8100;
+            text-decoration: none;
+        }
 
-    a:hover {
-        color: #333;
-        text-decoration: none;
-    }
+        a:hover {
+            color: #333;
+            text-decoration: none;
+        }
 
-	.center {display: block; margin-left: auto; margin-right: auto; width: 50%; }
-	div.center {
-		width: 800px;
-	}
+        .center {display: block; margin-left: auto; margin-right: auto; width: 50%; }
+        div.center {
+            width: 800px;
+        }
 
-	table.dataTable thead .sorting:after,
-table.dataTable thead .sorting:before,
-table.dataTable thead .sorting_asc:after,
-table.dataTable thead .sorting_asc:before,
-table.dataTable thead .sorting_asc_disabled:after,
-table.dataTable thead .sorting_asc_disabled:before,
-table.dataTable thead .sorting_desc:after,
-table.dataTable thead .sorting_desc:before,
-table.dataTable thead .sorting_desc_disabled:after,
-table.dataTable thead .sorting_desc_disabled:before {
-bottom: .5em;
-}
-.pt-3-half {
-padding-top: 1.4rem;
-}
+        table.dataTable thead .sorting:after,
+        table.dataTable thead .sorting:before,
+        table.dataTable thead .sorting_asc:after,
+        table.dataTable thead .sorting_asc:before,
+        table.dataTable thead .sorting_asc_disabled:after,
+        table.dataTable thead .sorting_asc_disabled:before,
+        table.dataTable thead .sorting_desc:after,
+        table.dataTable thead .sorting_desc:before,
+        table.dataTable thead .sorting_desc_disabled:after,
+        table.dataTable thead .sorting_desc_disabled:before {
+            bottom: .5em;
+        }
+        .pt-3-half {
+            padding-top: 1.4rem;
+        }
+        .none {
+            all: unset;
+        }
     </style>
 </head>
 
 <body>
+    <div class="md-form form-sm center">
+        <input type="text" id="inputSMEx" class="form-control form-control-sm">
+        <label for="inputSMEx">请在此处粘贴Youtube视频链接，并按回车回车键加载</label>
+    </div>
     <!-- 1. The <iframe> (and video player) will replace this <div> tag. -->
     <div id="player"></div>
     <div class="card center" aria-label="播放速度">
@@ -77,7 +83,8 @@ padding-top: 1.4rem;
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.75)">0.75</button>
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1)">正常</button>
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.25)">1.25</button>
-                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.75)">1.5</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.5)">1.5</button>
+                <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(1.75)">1.75</button>
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(2)">2</button>
             </div>
         </div>
@@ -87,8 +94,23 @@ padding-top: 1.4rem;
             <h6 class="card-title">时间戳</h6>
         </div>
         <div class="card-body">
-        	<button type="button" class="btn btn-default" onclick="resetTable()">重置 <span class="fas fa-redo" aria-hidden="true" /></button>
-            <button type="button" class="btn btn-default" onclick="downloadTxt()">txt <span class="fas fa-download" aria-hidden="true" /></button>
+            <h6>截取总时长 <span class="badge badge-primary">00:00:00.000</span></h6>
+            <span>
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">上传 <span class="fas fa-upload" aria-hidden="true" /></button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" onclick="loadTxtByURLClick()">URL</a>
+                    <a class="dropdown-item" href="#" onclick="loadTxtByFileClick()">本地文件</a>
+                    <input id="file-input" type="file" name="name" style="display: none;" />
+                </div>
+            </span>
+            <button type="button" class="btn btn-default" onclick="resetTable()">重置 <span class="fas fa-redo" aria-hidden="true" /></button>
+            <span>
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">下载 <span class="fas fa-download" aria-hidden="true" /></button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" onclick="downloadTxt(0)">TXT (Seconds format)</a>
+                    <a class="dropdown-item" href="#" onclick="downloadTxt(1)">TXT (HH:MM:SS.mmm format)</a>
+                </div>
+            </span>
             <!--<button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.5)">json <span class="fas fa-download" aria-hidden="true" /></button>-->
             <div id="timestamps">
                 <!-- Editable table -->
@@ -120,7 +142,8 @@ padding-top: 1.4rem;
     </div>
     <script>
     const urlParams = new URLSearchParams(queryString);
-    const videoId = urlParams.has('videoId') && urlParams.get('videoId');
+    const txtUrl = urlParams.has('url') && urlParams.get('url');
+    var videoId = urlParams.has('videoId') && urlParams.get('videoId');
     console.log(videoId);
     // 2. This code loads the IFrame Player API code asynchronously.
     var tag = document.createElement('script');
@@ -155,6 +178,9 @@ padding-top: 1.4rem;
     //    the player should play for six seconds and then stop.
     var done = false;
 
+    var formats = ['seconds', 'HHMMSSmmm'];
+    var totalCapturedTime = 0.0;
+
     // https://gist.github.com/vankasteelj/74ab7793133f4b257ea3
     function sec2time(timeInSeconds) {
         var pad = function(num, size) { return ('000' + num).slice(size * -1); },
@@ -188,26 +214,35 @@ padding-top: 1.4rem;
         document.body.removeChild(element);
     }
 
-    function downloadTxt() {
-    	var ts = timeStamps();
-    	var str = [];
+    function downloadTxt(format) {
 
-    	for (var i = 0; i < ts['start'].length; i++) {
-    		var txt = "";
-    		txt = time2sec(ts['start'][i]) + "," + time2sec(ts['end'][i]);
-    		str.push(txt);
-    	}
-    	download("timestamps.txt", str.join('\n'));
+        var ts = timeStamps();
+        var str = [];
+
+        // First line is the format info.
+        str.push(formats[format] + ',' + videoId);
+
+        for (var i = 0; i < ts['start'].length; i++) {
+            var txt = "";
+            if (format == 0) {
+                txt = time2sec(ts['start'][i]) + "," + time2sec(ts['end'][i]);
+            }
+            if (format == 1) {
+                txt = ts['start'][i] + "," + ts['end'][i];
+            }
+            str.push(txt);
+        }
+        download("timestamps_" + formats[format] + ".txt", str.join('\n'));
     }
 
     function resetTable() {
-    	if (isEmptyTable()) {
-    		return;
-    	}
+        if (isEmptyTable()) {
+            return;
+        }
 
-    	if (confirm("删除表中所有时间戳？")) {
-    		cleanUpTableRows();
-		}
+        if (confirm("删除表中所有时间戳？")) {
+            cleanUpTableRows();
+        }
     }
 
     function onPlayerStateChange(event) {
@@ -239,9 +274,9 @@ padding-top: 1.4rem;
             playVideo();
     }
 
-    function reloadVideo(start, end) {
-        player.loadVideoById({
-            'videoId': videoId,
+    function reloadVideo(vid, start, end) {
+        vid && player.loadVideoById({
+            'videoId': vid,
             'startSeconds': start,
             'endSeconds': end,
         });
@@ -251,14 +286,107 @@ padding-top: 1.4rem;
         player.setPlaybackRate(speed);
     }
 
+    // https://stackoverflow.com/questions/3452546/how-do-i-get-the-youtube-video-id-from-a-url
+    function youtube_parser(url) {
+        var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+        var match = url.match(regExp);
+        return (match && match[7].length == 11) ? match[7] : false;
+    }
+
+    // https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
+    function validURL(str) {
+        try {
+            new URL(str);
+        } catch (_) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function loadTxtByURLClick() {
+        var url = prompt("请填写含有时间戳文件的链接：");
+
+        url && loadTxtByURL(url);
+    }
+
+    function loadTxtByURL(url) {
+        if (!validURL(url)) {
+            alert("无效的URL链接：" + url);
+            return;
+        }
+
+        $.get(url, function(data) {
+            txtDataProcess(data);
+        }).fail(function() {
+            alert("无法读取URL");
+        }).done(function() {
+            //alert("数据加载完毕");
+        });
+    }
+
+    function cleanUpAndReload() {
+        cleanUpTableRows();
+        reloadVideo(videoId);
+    }
+
+    function loadTxtByFileClick() {
+        $('#file-input').trigger('click');
+    }
+
+    function txtDataProcess(data) {
+        var lines = data.split(/\r?\n/);
+        var metas = lines[0].trim().split(',');
+
+        if (metas[0] && !formats.includes(metas[0])) {
+            alert("无法识别的文件头：" + metas[0]);
+            return;
+        }
+
+        if (!isEmptyTable()) {
+            if (!confirm("重新加载视频，将清除已有时间戳。\n是否继续？")) {
+                return;
+            }
+        }
+
+        if (videoId && videoId !== metas[1]) {
+            if (!confirm("新视频与现有视频不同。\n是否重新加载？")) {
+                return;
+            }
+        }
+
+        videoId = metas[1];
+
+        cleanUpAndReload();
+
+        for (var i = 1; i < lines.length; i++) {
+            var parts = lines[i].trim().split(',');
+            var start, end;
+
+            if (metas[0] === formats[0]) {
+                start = sec2time(parts[0]);
+                end = sec2time(parts[1]);
+            } else {
+                start = parts[0];
+                end = pats[1];
+            }
+
+            addRecord(start, end);
+        }
+    }
+
+    function relativeSeek(sec) {
+        player.seekTo(player.getCurrentTime() + sec, true);
+    }
+
     document.addEventListener('keyup', function(event) {
         if (event.keyCode == 73) { // i
-            addRow(sec2time(player.getCurrentTime()));
+            addRow(player.getCurrentTime());
             console.log(sec2time(player.getCurrentTime()));
         }
 
         if (event.keyCode == 79) { // o
-            updateEndtime(sec2time(player.getCurrentTime()));
+            updateEndtime(player.getCurrentTime());
             console.log(sec2time(player.getCurrentTime()));
         }
 
@@ -271,8 +399,20 @@ padding-top: 1.4rem;
             toggleVideo();
         }
 
+        if (event.keyCode == 85) { // u
+            removeLastRow();
+        }
+
         if (event.keyCode == 76) { // l
-            reloadVideo(5, 60);
+            reloadVideo(videoId, 5, 60);
+        }
+
+        if (event.keyCode == 37) { // left
+            relativeSeek(-5);
+        }
+
+        if (event.keyCode == 39) { // right
+            relativeSeek(5);
         }
     });
 
@@ -310,73 +450,121 @@ padding-top: 1.4rem;
 
     const newTr = `
     <tr class="record">
-	    <td class="pt-3-half" contenteditable="true">START</td>
-	    <td class="pt-3-half" contenteditable="true">END</td>
-	    <td class="pt-3-half">
-	        <span class="table-replay"><button type="button" class="btn btn-info btn-rounded btn-sm my-0"><span class="fas fa-play" aria-hidden="true" /></button></span>
-	    </td>
-	    <td>
-	        <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0"><span class="fas fa-trash-alt" aria-hidden="true" /></button></span>
-	    </td>
-	</tr>`;
+        <td class="pt-3-half" contenteditable="true">START</td>
+        <td class="pt-3-half" contenteditable="true">END</td>
+        <td class="pt-3-half">
+            <span class="table-replay"><button type="button" class="btn btn-info btn-rounded btn-sm my-0"><span class="fas fa-play" aria-hidden="true" /></button></span>
+        </td>
+        <td>
+            <span class="table-remove"><button type="button" class="btn btn-danger btn-rounded btn-sm my-0"><span class="fas fa-trash-alt" aria-hidden="true" /></button></span>
+        </td>
+    </tr>`;
 
     const emptyTr = `
-	<tr class="odd">
-		<td valign="top" colspan="4" class="dataTables_empty">
-			No data available in table
-		</td>
-	</tr>
-	`
+    <tr class="odd">
+        <td valign="top" colspan="4" class="dataTables_empty">
+            No data available in table
+        </td>
+    </tr>
+    `
+
+    function addRecord(start, end) {
+        if (isEmptyTable()) {
+            $tableID.find('.odd').detach();
+        }
+
+        $tableID.find('tbody').append(newTr);
+        $tableID.find('.record').last().find('td:nth-child(1)').text(start);
+        $tableID.find('.record').last().find('td:nth-child(2)').text(end);
+    }
 
     function addRow(start) {
         if (isEmptyTable()) {
             $tableID.find('.odd').detach();
         }
 
+        var selector = '.record td:nth-child(1):contains(' + start + ')'
+        if ($(selector).length !== 0) {
+            return;
+        }
+
         var end = $tableID.find('.record').last().find('td:nth-child(2)').text();
 
-        if (end !== 'END' && start > end) {
+        if (end !== 'END') {
             $tableID.find('tbody').append(newTr);
         }
 
-        $tableID.find('.record').last().find('td:nth-child(1)').text(start);
+        $tableID.find('.record').last().find('td:nth-child(1)').text(sec2time(start));
     }
 
     function updateEndtime(end) {
         if (isEmptyTable()) {
             return;
         }
-        $tableID.find('.record').last().find('td:nth-child(2)').text(end);
+        $tableID.find('.record').last().find('td:nth-child(2)').text(sec2time(end));
     }
 
     function timeStamps() {
-    	if (isEmptyTable()) {
+        totalCapturedTime = 0.0;
+
+        if (isEmptyTable()) {
             return;
         }
 
         var ts = {
-        	'start': [],
-        	'end': []}
+            'start': [],
+            'end': []
+        }
         $tableID.find('.record').each((index, obj) => {
-        	var start = $(obj).find('td:nth-child(1)').text();
-        	var end = $(obj).find('td:nth-child(2)').text();
-        	if (end !== 'END') {
-        		ts['start'].push(start);
-        		ts['end'].push(end);
-        	}
+            var start = $(obj).find('td:nth-child(1)').text();
+            var end = $(obj).find('td:nth-child(2)').text();
+            if (end !== 'END' && end > start) {
+                ts['start'].push(start);
+                ts['end'].push(end);
+                totalCapturedTime = totalCapturedTime + (time2sec(end) - time2sec(start));
+            }
         });
 
         return ts;
     }
 
+    function updateTotalCapturedTime() {
+        timeStamps(); // Refresh totalCapturedTime
+        $('h6 span.badge').text(sec2time(totalCapturedTime));
+    }
+
     function cleanUpTableRows() {
-    	$tableID.find('tbody').empty();
-    	$tableID.find('tbody').append(emptyTr);
+        $tableID.find('tbody').empty();
+        addEmptyInfo(true);
     }
 
     function isEmptyTable() {
-    	return $tableID.find('.odd').length !== 0;
+        return $tableID.find('.odd').length !== 0;
     }
+
+    function removeLastRow() {
+        if (isEmptyTable()) {
+            return;
+        }
+
+        $tableID.find('.record').last().detach();
+        addEmptyInfo();
+    }
+
+    function addEmptyInfo(force) {
+        if (!force) {
+            if ($tableID.find('tbody tr').length !== 0) {
+                return;
+            }
+        }
+        $tableID.find('tbody').append(emptyTr);
+
+    }
+
+    $(function() {
+        setInterval(updateTotalCapturedTime, 500);
+        //setInterval(function() {$('#player').blur()}, 5000);
+    });
 
     $('.table-add').on('click', 'i', () => {
         const $clone = $tableID.find('tbody tr').last().clone(true).removeClass('hide table-line');
@@ -392,14 +580,12 @@ padding-top: 1.4rem;
         var start = $(this).parents('tr').find('td:nth-child(1)').text();
         var end = $(this).parents('tr').find('td:nth-child(2)').text();
 
-        reloadVideo(time2sec(start), time2sec(end));
+        reloadVideo(videoId,time2sec(start), time2sec(end));
     });
 
     $tableID.on('click', '.table-remove', function() {
         $(this).parents('tr').detach();
-        if ($tableID.find('tbody tr').length === 0) {
-            $tableID.find('tbody').append(emptyTr);
-        }
+        addEmptyInfo();
     });
 
     $tableID.on('click', '.table-up', function() {
@@ -447,6 +633,39 @@ padding-top: 1.4rem;
 
         // Output the result
         $EXPORT.text(JSON.stringify(data));
+    });
+
+    $('#inputSMEx').keyup(function(e) {
+        if (e.keyCode == 13) {
+            $(this).blur();
+            var id = youtube_parser($(this).val())
+            if (id === videoId) {
+                return;
+            }
+            /*
+            if (!isEmptyTable()) {
+                if (!confirm("重新加载视频，将清除已有时间戳。\n是否继续？")) {
+                    return;
+                }
+            }*/
+
+            videoId = id ? id : videoId;
+            reloadVideo(videoId);
+            //cleanUpAndReload();
+        }
+    });
+
+    $('#file-input').on('change', function() {
+        var fileReader = new FileReader();
+        fileReader.onload = function() {
+            var data = fileReader.result; // data <-- in this var you have the file data in Base64 format
+            txtDataProcess(data);
+        };
+        fileReader.readAsText($(this).prop('files')[0]);
+    });
+
+    $(window).on('load', function() {
+        txtUrl && loadTxtByURL(txtUrl);
     });
     </script>
 </body>
