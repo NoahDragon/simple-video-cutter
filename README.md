@@ -51,9 +51,10 @@ start_time,end_time
 
 ### 加载文件
 
-有两种加载文件方式：
+有三种加载文件方式：
 * 通过本地文件上传，请注意文件格式需要符合如上所述的形式。
 * 通过URL。除格式上需要注意外，还需要防止[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS/Errors)限制。目前所知Github的raw文件链接可以使用。（已知不可用：PasteBin raw链接）
+* 通过链接参数url，但如果videoId的参数也提供了的话，会被url中的数据覆盖。
 
 ### 快速剪辑
 
@@ -65,6 +66,12 @@ python cutVideoByTimestamps.py 原视频 时间戳文件 [-o 输出文件]
 ```
 
 默认输出文件为当前文件夹`out.mp4`。
+
+## DEMO
+
+* 时间戳文件: https://raw.githubusercontent.com/NoahDragon/simple-video-cutter/main/sample/timestamps.txt
+* 加载视频通过链接参数: https://www.abnerchou.me/simple-video-cutter?videoId=fOmz2fPlyfo
+* 加载时间戳文件通过链接参数: https://www.abnerchou.me/simple-video-cutter?url=https://raw.githubusercontent.com/NoahDragon/simple-video-cutter/main/sample/timestamps.txt
 
 ## TODO
 
