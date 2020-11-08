@@ -41,32 +41,38 @@
 
         .center {display: block; margin-left: auto; margin-right: auto; width: 50%; }
         div.center {
-            width: 800px;
+            width: 640px;
         }
 
-        table.dataTable thead .sorting:after,
-        table.dataTable thead .sorting:before,
-        table.dataTable thead .sorting_asc:after,
-        table.dataTable thead .sorting_asc:before,
-        table.dataTable thead .sorting_asc_disabled:after,
-        table.dataTable thead .sorting_asc_disabled:before,
-        table.dataTable thead .sorting_desc:after,
-        table.dataTable thead .sorting_desc:before,
-        table.dataTable thead .sorting_desc_disabled:after,
-        table.dataTable thead .sorting_desc_disabled:before {
-            bottom: .5em;
-        }
         .pt-3-half {
             padding-top: 1.4rem;
         }
         .none {
             all: unset;
         }
+
+        table.table td, table.table th {   padding-top: .2rem;   padding-bottom: .2rem;}
+
+        .btn {
+        padding: .4rem 1.5rem;
+        }
+
+        table.table .btn {
+            padding: .2rem 1.5rem;
+        }
+
+        .card-title {
+            margin-bottom: 0;
+        }
+
+        .speed_btn_group {
+            padding: 10px 20px;
+        }
     </style>
 </head>
 
 <body>
-    <div class="md-form form-sm center">
+    <div class="md-form form-sm md-bg center">
         <input type="text" id="inputSMEx" class="form-control form-control-sm">
         <label for="inputSMEx">请在此处粘贴Youtube视频链接，并按回车回车键加载</label>
     </div>
@@ -76,7 +82,7 @@
         <div class="card-header">
             <h6 class="card-title">播放速度</h6>
         </div>
-        <div class="card-body">
+        <div class="card-body speed_btn_group">
             <div class="btn-group" role="group" aria-label="Playback Speed">
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.25)">0.25</button>
                 <button type="button" class="btn btn-default" onclick="setPlaybackSpeed(0.5)">0.5</button>
@@ -120,6 +126,7 @@
                             <tr>
                                 <th class="text-center">Start Time</th>
                                 <th class="text-center">End Time</th>
+                                <th class="text-center">Length</th>
                                 <th class="text-center">Replay</th>
                                 <th class="text-center">Remove</th>
                             </tr>
@@ -130,6 +137,7 @@
                             <tr>
                                 <th class="text-center">Start Time</th>
                                 <th class="text-center">End Time</th>
+                                <th class="text-center">Length</th>
                                 <th class="text-center">Replay</th>
                                 <th class="text-center">Remove</th>
                             </tr>
@@ -179,7 +187,6 @@
     var done = false;
 
     var formats = ['seconds', 'HHMMSSmmm'];
-    var totalCapturedTime = 0.0;
 
     // https://gist.github.com/vankasteelj/74ab7793133f4b257ea3
     function sec2time(timeInSeconds) {
@@ -361,17 +368,19 @@
 
         for (var i = 1; i < lines.length; i++) {
             var parts = lines[i].trim().split(',');
-            var start, end;
+            var start, end, len;
 
             if (metas[0] === formats[0]) {
+                len = parts[1] - parts[0];
                 start = sec2time(parts[0]);
                 end = sec2time(parts[1]);
             } else {
                 start = parts[0];
-                end = pats[1];
+                end = parts[1];
+                len = time2sec(end) - time2sec(start);
             }
 
-            addRecord(start, end);
+            addRecord(start, end, len);
         }
     }
 
@@ -444,6 +453,7 @@
             "scrollCollapse": true,
             "searching": false, // false to disable search (or any other option)
             "paging": false, // false to disable pagination (or any other option)
+            "ordering": false, // false to disable sorting (or any other option)
         });
         $('.dataTables_length').addClass('bs-select');
     });
@@ -452,6 +462,7 @@
     <tr class="record">
         <td class="pt-3-half" contenteditable="true">START</td>
         <td class="pt-3-half" contenteditable="true">END</td>
+        <td class="pt-3-half" contenteditable="false">0</td>
         <td class="pt-3-half">
             <span class="table-replay"><button type="button" class="btn btn-info btn-rounded btn-sm my-0"><span class="fas fa-play" aria-hidden="true" /></button></span>
         </td>
@@ -462,13 +473,13 @@
 
     const emptyTr = `
     <tr class="odd">
-        <td valign="top" colspan="4" class="dataTables_empty">
+        <td valign="top" colspan="5" class="dataTables_empty">
             No data available in table
         </td>
     </tr>
     `
 
-    function addRecord(start, end) {
+    function addRecord(start, end, length) {
         if (isEmptyTable()) {
             $tableID.find('.odd').detach();
         }
@@ -476,6 +487,7 @@
         $tableID.find('tbody').append(newTr);
         $tableID.find('.record').last().find('td:nth-child(1)').text(start);
         $tableID.find('.record').last().find('td:nth-child(2)').text(end);
+        $tableID.find('.record').last().find('td:nth-child(3)').text(length.toFixed(3));
     }
 
     function addRow(start) {
@@ -501,12 +513,13 @@
         if (isEmptyTable()) {
             return;
         }
+
+        var start = time2sec($tableID.find('.record').last().find('td:nth-child(1)').text());
         $tableID.find('.record').last().find('td:nth-child(2)').text(sec2time(end));
+        $tableID.find('.record').last().find('td:nth-child(3)').text((end - start).toFixed(3));
     }
 
     function timeStamps() {
-        totalCapturedTime = 0.0;
-
         if (isEmptyTable()) {
             return;
         }
@@ -521,16 +534,27 @@
             if (end !== 'END' && end > start) {
                 ts['start'].push(start);
                 ts['end'].push(end);
-                totalCapturedTime = totalCapturedTime + (time2sec(end) - time2sec(start));
             }
         });
 
         return ts;
     }
 
+    function totalTime() {
+        var totalCapturedTime = 0.0;
+
+        $tableID.find('.record').each((index, obj) => {
+            var length = $(obj).find('td:nth-child(3)').text();
+            totalCapturedTime = totalCapturedTime + parseFloat(length);
+        });
+
+        return totalCapturedTime;
+    }
+
     function updateTotalCapturedTime() {
-        timeStamps(); // Refresh totalCapturedTime
-        $('h6 span.badge').text(sec2time(totalCapturedTime));
+        var total = totalTime(); // total time
+            console.log(total);
+        $('h6 span.badge').text(sec2time(total));
     }
 
     function cleanUpTableRows() {
