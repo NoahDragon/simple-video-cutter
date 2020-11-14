@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Push to RA tools
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the main branch
@@ -22,7 +22,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Push to RA tools
-        uses: noahgragon/action-push-repo-as-subdirectory-in-another-repo@main
+        uses: NoahDragon/action-push-repo-as-subdirectory-in-another-repo@0.0.2
         env: 
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
