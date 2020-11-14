@@ -22,7 +22,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Push to RA tools
-        uses: NoahDragon/action-push-repo-as-subdirectory-in-another-repo@0.0.2
+        uses: NoahDragon/action-push-repo-as-subdirectory-in-another-repo@0.0.3
         env: 
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
