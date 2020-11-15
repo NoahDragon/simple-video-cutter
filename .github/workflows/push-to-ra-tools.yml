@@ -27,7 +27,6 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
           dest-repo: 'redwoodedu/tools'
-          dest-branch: 'test'
           dest-folder: 'svc'
 
       # Runs a set of commands using the runners shell
